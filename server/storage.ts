@@ -1,5 +1,7 @@
 import { type Customer, type InsertCustomer, type UpdateCustomer } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { promises as fs } from "fs";
+import path from "path";
 
 export interface IStorage {
   getCustomer(id: string): Promise<Customer | undefined>;
@@ -10,11 +12,37 @@ export interface IStorage {
   searchCustomers(query: string): Promise<Customer[]>;
 }
 
-export class MemStorage implements IStorage {
+export class JSONStorage implements IStorage {
   private customers: Map<string, Customer>;
+  private filePath: string;
 
-  constructor() {
+  constructor(filePath: string = "customers.json") {
     this.customers = new Map();
+    this.filePath = path.resolve(filePath);
+    this.loadData();
+  }
+
+  private async loadData(): Promise<void> {
+    try {
+      const data = await fs.readFile(this.filePath, "utf-8");
+      const customers: Customer[] = JSON.parse(data);
+      this.customers = new Map(customers.map(customer => [customer.id, customer]));
+      console.log(`[storage] Cargados ${customers.length} clientes desde ${this.filePath}`);
+    } catch (error) {
+      // Si el archivo no existe o hay error, empezar con datos vacíos
+      console.log(`[storage] Creando nuevo archivo de datos en ${this.filePath}`);
+      this.customers = new Map();
+      await this.saveData();
+    }
+  }
+
+  private async saveData(): Promise<void> {
+    try {
+      const customers = Array.from(this.customers.values());
+      await fs.writeFile(this.filePath, JSON.stringify(customers, null, 2), "utf-8");
+    } catch (error) {
+      console.error("[storage] Error guardando datos:", error);
+    }
   }
 
   async getCustomer(id: string): Promise<Customer | undefined> {
@@ -29,6 +57,7 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const customer: Customer = { ...insertCustomer, id };
     this.customers.set(id, customer);
+    await this.saveData();
     return customer;
   }
 
@@ -38,11 +67,16 @@ export class MemStorage implements IStorage {
     
     const updated: Customer = { ...existing, ...updateData };
     this.customers.set(id, updated);
+    await this.saveData();
     return updated;
   }
 
   async deleteCustomer(id: string): Promise<boolean> {
-    return this.customers.delete(id);
+    const deleted = this.customers.delete(id);
+    if (deleted) {
+      await this.saveData();
+    }
+    return deleted;
   }
 
   async searchCustomers(query: string): Promise<Customer[]> {
@@ -56,4 +90,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new JSONStorage();
