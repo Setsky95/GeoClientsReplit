@@ -1,0 +1,22 @@
+services:
+  # Backend (Express API)
+  - type: web
+    name: geoclients-api
+    env: node
+    buildCommand: npm install
+    startCommand: npm run server
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+
+  # Frontend (React)
+  - type: web
+    name: geoclients-frontend
+    env: static
+    buildCommand: npm install && npm run build:client
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://geoclients-api.onrender.com
