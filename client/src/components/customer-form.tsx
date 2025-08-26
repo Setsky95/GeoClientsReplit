@@ -31,7 +31,8 @@ export default function CustomerForm({ onSuccess, onCancel }: CustomerFormProps)
     resolver: zodResolver(insertCustomerSchema),
     defaultValues: {
       name: "",
-      address: "",
+      street: "",
+      number: "",
       phone: "",
       description: "",
       lat: "",
@@ -78,7 +79,9 @@ export default function CustomerForm({ onSuccess, onCancel }: CustomerFormProps)
     setIsGeocoding(true);
     
     try {
-      const geocodeResult = await geocodeAddress(data.address);
+      // Combinar calle y numero para geocodificación
+      const fullAddress = `${data.street} ${data.number}`;
+      const geocodeResult = await geocodeAddress(fullAddress);
       
       if (geocodeResult) {
         const customerData = {
@@ -90,7 +93,7 @@ export default function CustomerForm({ onSuccess, onCancel }: CustomerFormProps)
       } else {
         toast({
           title: "Error de geocodificación",
-          description: "No se pudo encontrar la dirección. Verifica que esté en La Plata y alrededores.",
+          description: "No se pudo encontrar la dirección. Verifica que la calle y número estén en La Plata y alrededores.",
           variant: "destructive",
         });
       }
@@ -127,22 +130,42 @@ export default function CustomerForm({ onSuccess, onCancel }: CustomerFormProps)
         )}
       </div>
       
-      <div>
-        <Label htmlFor="address" className="text-sm font-medium text-foreground">
-          Dirección *
-        </Label>
-        <Input
-          id="address"
-          {...form.register("address")}
-          placeholder="Calle 7 entre 47 y 48, La Plata"
-          className="mt-1"
-          data-testid="input-customer-address"
-        />
-        {form.formState.errors.address && (
-          <p className="text-sm text-destructive mt-1">
-            {form.formState.errors.address.message}
-          </p>
-        )}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label htmlFor="street" className="text-sm font-medium text-foreground">
+            Calle *
+          </Label>
+          <Input
+            id="street"
+            {...form.register("street")}
+            placeholder="Calle 7"
+            className="mt-1"
+            data-testid="input-customer-street"
+          />
+          {form.formState.errors.street && (
+            <p className="text-sm text-destructive mt-1">
+              {form.formState.errors.street.message}
+            </p>
+          )}
+        </div>
+        
+        <div>
+          <Label htmlFor="number" className="text-sm font-medium text-foreground">
+            Número *
+          </Label>
+          <Input
+            id="number"
+            {...form.register("number")}
+            placeholder="852"
+            className="mt-1"
+            data-testid="input-customer-number"
+          />
+          {form.formState.errors.number && (
+            <p className="text-sm text-destructive mt-1">
+              {form.formState.errors.number.message}
+            </p>
+          )}
+        </div>
       </div>
       
       <div>

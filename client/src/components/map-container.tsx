@@ -131,7 +131,7 @@ export default function MapContainer({
         .bindPopup(`
           <div class="p-3 min-w-48">
             <h4 class="font-medium text-gray-900 mb-1">${customer.name}</h4>
-            <p class="text-sm text-gray-600 mb-1">${customer.address}</p>
+            <p class="text-sm text-gray-600 mb-1">${customer.street} ${customer.number}</p>
             <p class="text-sm text-gray-500 mb-1">${customer.phone}</p>
             ${customer.description ? `<p class="text-xs text-gray-400 mt-2">${customer.description}</p>` : ''}
             <div class="mt-3 space-x-2">
@@ -169,13 +169,15 @@ export default function MapContainer({
     const name = prompt("Nombre del cliente:");
     if (!name) return;
 
-    const address = prompt("Dirección:") || "Ubicación manual";
+    const street = prompt("Calle:") || "Calle sin nombre";
+    const number = prompt("Número:") || "S/N";
     const phone = prompt("Teléfono:") || "";
     const description = prompt("Descripción (opcional):") || "";
 
     const customerData = {
       name,
-      address,
+      street,
+      number,
       phone,
       description,
       lat: latlng.lat.toString(),

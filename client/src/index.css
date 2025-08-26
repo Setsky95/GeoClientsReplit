@@ -132,3 +132,16 @@
 .sidebar-transition {
   transition: transform 0.3s ease-in-out;
 }
+
+/* Toast z-index fix - debe estar por encima del mapa */
+[data-radix-toast-viewport] {
+  z-index: 9999 !important;
+}
+
+[data-sonner-toaster] {
+  z-index: 9999 !important;
+}
+
+.toast-container {
+  z-index: 9999 !important;
+}

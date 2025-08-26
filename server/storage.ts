@@ -83,7 +83,8 @@ export class JSONStorage implements IStorage {
     const lowercaseQuery = query.toLowerCase();
     return Array.from(this.customers.values()).filter(customer =>
       customer.name.toLowerCase().includes(lowercaseQuery) ||
-      customer.address.toLowerCase().includes(lowercaseQuery) ||
+      customer.street.toLowerCase().includes(lowercaseQuery) ||
+      customer.number.toLowerCase().includes(lowercaseQuery) ||
       customer.phone.includes(query) ||
       (customer.description && customer.description.toLowerCase().includes(lowercaseQuery))
     );

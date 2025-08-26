@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "name": "sss",
+    "street": "514",
+    "number": "2050",
+    "phone": "",
+    "description": "",
+    "lat": "-34.9050798",
+    "lng": "-58.0108286",
+    "id": "0b08ce61-9a27-4efe-a82a-f6157beec329"
+  }
+]

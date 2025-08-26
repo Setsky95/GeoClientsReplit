@@ -93,7 +93,7 @@ export default function CustomerList({
                 {customer.name}
               </h4>
               <p className="text-sm text-muted-foreground mt-1" data-testid={`text-customer-address-${customer.id}`}>
-                {customer.address}
+                {customer.street} {customer.number}
               </p>
               <p className="text-sm text-muted-foreground" data-testid={`text-customer-phone-${customer.id}`}>
                 {customer.phone}
