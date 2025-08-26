@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { Customer } from "@shared/schema";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Minus, Crosshair, Flame, Layers, MapPin } from "lucide-react";
 
 interface MapContainerProps {
   customers: Customer[];
   selectedCustomer: Customer | null;
   onCustomerSelect: (customer: Customer) => void;
+  manualMode: boolean;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onMyLocation: () => void;
 }
 
 declare global {
@@ -21,15 +23,68 @@ declare global {
 export default function MapContainer({ 
   customers, 
   selectedCustomer, 
-  onCustomerSelect 
+  onCustomerSelect,
+  manualMode,
+  onZoomIn,
+  onZoomOut,
+  onMyLocation
 }: MapContainerProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [manualMode, setManualMode] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Exponer funciones del mapa a los props
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    
+    // Asignar funciones para que los controles externos puedan usarlas
+    const zoomIn = () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.zoomIn();
+      }
+    };
+    
+    const zoomOut = () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.zoomOut();
+      }
+    };
+    
+    const myLocation = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            if (mapInstanceRef.current) {
+              mapInstanceRef.current.setView([latitude, longitude], 15);
+            }
+          },
+          () => {
+            toast({
+              title: "Error de ubicación",
+              description: "No se pudo obtener tu ubicación",
+              variant: "destructive",
+            });
+          }
+        );
+      }
+    };
+
+    // Exponer las funciones (esto se ejecutará cuando se monte el mapa)
+    window.mapZoomIn = zoomIn;
+    window.mapZoomOut = zoomOut;
+    window.mapMyLocation = myLocation;
+    
+    return () => {
+      // Limpiar funciones globales
+      delete window.mapZoomIn;
+      delete window.mapZoomOut;
+      delete window.mapMyLocation;
+    };
+  }, [mapInstanceRef.current]);
 
   const createCustomerMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -106,6 +161,57 @@ export default function MapContainer({
       }
     };
   }, [isLoaded, manualMode]);
+
+  // Exponer funciones de mapa
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    
+    // Estas funciones serán llamadas desde los controles externos
+    const zoomInHandler = () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.zoomIn();
+      }
+    };
+    
+    const zoomOutHandler = () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.zoomOut();
+      }
+    };
+    
+    const myLocationHandler = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            if (mapInstanceRef.current) {
+              mapInstanceRef.current.setView([latitude, longitude], 15);
+            }
+          },
+          () => {
+            toast({
+              title: "Error de ubicación",
+              description: "No se pudo obtener tu ubicación",
+              variant: "destructive",
+            });
+          }
+        );
+      }
+    };
+
+    // Conectar las funciones con los props que vienen del padre
+    window.currentMapHandlers = {
+      zoomIn: zoomInHandler,
+      zoomOut: zoomOutHandler,
+      myLocation: myLocationHandler
+    };
+    
+    return () => {
+      if (window.currentMapHandlers) {
+        delete window.currentMapHandlers;
+      }
+    };
+  }, [mapInstanceRef.current]);
 
   // Update markers when customers change
   useEffect(() => {
@@ -187,38 +293,6 @@ export default function MapContainer({
     createCustomerMutation.mutate(customerData);
   };
 
-  const handleZoomIn = () => {
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.zoomIn();
-    }
-  };
-
-  const handleZoomOut = () => {
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.zoomOut();
-    }
-  };
-
-  const handleMyLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          if (mapInstanceRef.current) {
-            mapInstanceRef.current.setView([latitude, longitude], 15);
-          }
-        },
-        () => {
-          toast({
-            title: "Error de ubicación",
-            description: "No se pudo obtener tu ubicación",
-            variant: "destructive",
-          });
-        }
-      );
-    }
-  };
-
   if (!isLoaded) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-muted/20">
@@ -231,114 +305,8 @@ export default function MapContainer({
   }
 
   return (
-    <div className="relative w-full h-full">
-      {/* Map Controls */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col space-y-2">
-        <div className="bg-white rounded-lg shadow-lg p-1">
-          <div className="flex flex-col space-y-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-10 w-10 p-0"
-              onClick={handleZoomIn}
-              title="Zoom In"
-              data-testid="button-zoom-in"
-            >
-              <Plus size={16} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-10 w-10 p-0"
-              onClick={handleZoomOut}
-              title="Zoom Out"
-              data-testid="button-zoom-out"
-            >
-              <Minus size={16} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-10 w-10 p-0"
-              onClick={handleMyLocation}
-              title="Mi Ubicación"
-              data-testid="button-my-location"
-            >
-              <Crosshair size={16} />
-            </Button>
-          </div>
-        </div>
-        
-        {/* Map Layers Toggle */}
-        <div className="bg-white rounded-lg shadow-lg p-1">
-          <div className="flex flex-col space-y-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-10 w-10 p-0"
-              title="Mapa de Calor"
-              data-testid="button-heatmap"
-            >
-              <Flame size={16} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-10 w-10 p-0"
-              title="Agrupar Pines"
-              data-testid="button-clusters"
-            >
-              <Layers size={16} />
-            </Button>
-          </div>
-        </div>
-      </div>
-      
-      {/* Manual Pin Mode Toggle */}
-      <div className="absolute top-4 left-4 z-10">
-        <div className="bg-white rounded-lg shadow-lg p-3">
-          <div className="flex items-center space-x-3">
-            <MapPin className="text-accent" size={16} />
-            <div>
-              <p className="text-sm font-medium text-foreground">Modo Manual</p>
-              <p className="text-xs text-muted-foreground">Click en el mapa para agregar pin</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={manualMode}
-                onChange={(e) => setManualMode(e.target.checked)}
-                className="sr-only peer"
-                data-testid="toggle-manual-mode"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-            </label>
-          </div>
-        </div>
-      </div>
-      
-      {/* Map Legend */}
-      <div className="absolute bottom-4 left-4 z-10">
-        <div className="bg-white rounded-lg shadow-lg p-4">
-          <h4 className="text-sm font-medium text-foreground mb-3">Leyenda</h4>
-          <div className="space-y-2">
-            <div className="flex items-center space-x-3">
-              <div className="w-4 h-4 bg-success rounded-full"></div>
-              <span className="text-xs text-muted-foreground">Zona Baja Densidad</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="w-4 h-4 bg-accent rounded-full"></div>
-              <span className="text-xs text-muted-foreground">Zona Media Densidad</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="w-4 h-4 bg-destructive rounded-full"></div>
-              <span className="text-xs text-muted-foreground">Zona Alta Densidad</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Map Container */}
+    <div className="w-full h-full">
+      {/* Map Container - Sin controles superpuestos */}
       <div
         ref={mapRef}
         className="w-full h-full"
